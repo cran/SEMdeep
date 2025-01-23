@@ -2,16 +2,16 @@
 % Please edit documentation in R/SEMdnn.R
 \name{getGradientWeight}
 \alias{getGradientWeight}
-\title{Gradient Weight Approach for neural network variable importance}
+\title{Gradient Weight method for neural network variable importance}
 \usage{
 getGradientWeight(object, thr = NULL, verbose = FALSE, ...)
 }
 \arguments{
 \item{object}{A neural network object from \code{SEMdnn()} function.}
 
-\item{thr}{A threshold value to apply to gradient weights of input
-nodes (variables). If NULL (default), the threshold is set to
-thr=mean(abs(gradient weights)).}
+\item{thr}{A numeric value [0-1] indicating the threshold to apply to the
+gradient weights to color the graph. If thr = NULL (default), the threshold
+is set to thr = 0.5*max(abs(gradient weights)).}
 
 \item{verbose}{A logical value. If FALSE (default), the processed graph
 will not be plotted to screen.}
@@ -19,10 +19,14 @@ will not be plotted to screen.}
 \item{...}{Currently ignored.}
 }
 \value{
-A list od two object: (i) a data.frame including the connections together
-with their weights, and (ii) the DAG with colored edges. If abs(W) > thr and W < 0,
-the edge is inhibited and it is highlighted in blue; otherwise, if abs(W) > thr and
-W > 0, the edge is activated and it is highlighted in red.
+A list of three object: (i) est: a data.frame including the connections together
+with their gradient weights, (ii) gest: if the outcome vector is given, a data.frame of
+gradient weights for outcome lavels, and (iii) dag: DAG with colored edges/nodes. If
+abs(grad) > thr and grad < 0, the edge is inhibited and it is highlighted in blue;
+otherwise, if abs(grad) > thr and grad > 0, the edge is activated and it is highlighted
+in red. If the outcome vector is given, nodes with absolute connection weights summed
+over the outcome levels, i.e. sum(abs(grad[outcome levels])) > thr, will be highlighted
+in pink.
 }
 \description{
 The function computes the gradient matrix, i.e., the average
@@ -56,14 +60,14 @@ ig<- alsData$graph
 data<- alsData$exprs
 data<- transformData(data)$data
 
-dnn0 <- SEMdnn(ig, data, train=1:nrow(data), cowt = FALSE,
-			#loss = "mse", hidden = 5*K, link = "selu",
-			loss = "mse", hidden = c(10, 10, 10), link = "selu",
-			validation = 0, bias = TRUE, lr = 0.01,
-			epochs = 32, device = "cpu", verbose = TRUE)
+#ncores<- parallel::detectCores(logical = FALSE)
+dnn0<- SEMdnn(ig, data, outcome = NULL, thr = NULL,
+			#hidden = 5*K, link = "selu", bias = TRUE,
+			hidden = c(10,10,10), link = "selu", bias = TRUE,
+			validation = 0,  epochs = 32, ncores = 2)
 
-res<- getGradientWeight(dnn0, thr=NULL, verbose=TRUE)
-table(E(res$dag)$color)
+gw05<- getGradientWeight(dnn0, thr = 0.5, verbose = TRUE)
+table(E(gw05$dag)$color)
 }
 }
 
